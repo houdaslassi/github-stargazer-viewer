@@ -133,8 +133,8 @@ createApp({
           this.error ? h('div', { class: 'error' }, this.error) :
           h('div', { class: 'modal-body' }, [
             h('div', { class: 'users-list' }, this.users.map(user => 
-              h('div', { key: user.login, class: 'user-item }, [
-                h('img', { src: user.avatar_url', alt: user.login, class: 'avatar' }),
+              h('div', { key: user.login, class: 'user-item' }, [
+                h('img', { src: user.avatar_url, alt: user.login, class: 'avatar' }),
                 h('a', { href: user.html_url, target: '_blank' }, user.login)
               ])
             )),
