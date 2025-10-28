@@ -128,7 +128,7 @@ createApp({
             h('button', { class: 'close-btn', onClick: () => this.closeModal() }, '×')
           ]),
           
-          // Content
+          // Content - Scrollable area
           this.loading ? h('div', { class: 'loading' }, 'Loading...') :
           this.error ? h('div', { class: 'error' }, this.error) :
           h('div', { class: 'modal-body' }, [
@@ -137,13 +137,17 @@ createApp({
                 h('img', { src: user.avatar_url, alt: user.login, class: 'avatar' }),
                 h('a', { href: user.html_url, target: '_blank' }, user.login)
               ])
-            )),
-            this.nextPageUrl && !this.loading ? h('button', {
+            ))
+          ]),
+          
+          // Footer - Load More button (always visible)
+          !this.loading && !this.error ? h('div', { class: 'modal-footer' }, [
+            this.loadingMore ? h('div', { class: 'loading', style: 'padding: 10px; font-size: 14px;' }, 'Loading more...') :
+            this.nextPageUrl ? h('button', {
               class: 'load-more-btn',
               onClick: () => this.loadMore()
-            }, 'Load More') : null,
-            this.loadingMore ? h('div', { class: 'loading' }, 'Loading more...') : null
-          ])
+            }, 'Load More') : null
+          ]) : null
         ])
       ]) : null
     ]);
@@ -194,7 +198,6 @@ style.textContent = `
     max-width: 600px;
     width: 90%;
     max-height: 80vh;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
@@ -228,9 +231,18 @@ style.textContent = `
     color: #24292f;
   }
   
+  .modal-body {
+    max-height: calc(80vh - 70px);
+    overflow-y: auto;
+  }
+  
+  .modal-footer {
+    padding: 0 20px 20px;
+    text-align: center;
+  }
+  
   .users-list {
     padding: 20px;
-    overflow-y: auto;
   }
   
   .user-item {
@@ -277,7 +289,6 @@ style.textContent = `
   }
   
   .load-more-btn {
-    margin: 20px auto;
     padding: 10px 24px;
     background: #f6f8fa;
     border: 1px solid #d0d7de;
@@ -285,7 +296,6 @@ style.textContent = `
     cursor: pointer;
     font-size: 14px;
     color: #24292f;
-    display: block;
     transition: all 0.2s;
   }
   .load-more-btn:hover {
