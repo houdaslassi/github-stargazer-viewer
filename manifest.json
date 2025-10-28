@@ -2,5 +2,13 @@
   "manifest_version": 3,
   "name": "GitHub Stargazer Viewer",
   "version": "1.0.0",
-  "description": "View who starred GitHub repositories"
+  "description": "View who starred GitHub repositories",
+  
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
