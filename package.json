@@ -1,0 +1,8 @@
+{
+  "name": "github-stargazer-viewer",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "vue": "^3.4.15"
+  }
+}
