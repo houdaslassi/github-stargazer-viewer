@@ -1,0 +1,6 @@
+{
+  "manifest_version": 3,
+  "name": "GitHub Stargazer Viewer",
+  "version": "1.0.0",
+  "description": "View who starred GitHub repositories"
+}
