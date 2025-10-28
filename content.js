@@ -33,7 +33,9 @@ createApp({
       error: null,
       users: [],
       modalTitle: '',
-      repoInfo: getRepoInfo()
+      repoInfo: getRepoInfo(),
+      nextPageUrl: null,
+      loadingMore: false
     };
   },
   methods: {
@@ -43,6 +45,7 @@ createApp({
       this.loading = true;
       this.error = null;
       this.users = [];
+      this.nextPageUrl = null;
       
       try {
         const url = `https://api.github.com/repos/${this.repoInfo.owner}/${this.repoInfo.repo}/stargazers`;
@@ -52,12 +55,50 @@ createApp({
           throw new Error('Failed to fetch stargazers');
         }
         
+        // Check for pagination in Link header
+        const linkHeader = response.headers.get('Link');
+        if (linkHeader) {
+          const match = linkHeader.match(/<([^>]+)>; rel="next"/);
+          if (match) {
+            this.nextPageUrl = match[1];
+          }
+        }
+        
         const data = await response.json();
         this.users = data;
         this.loading = false;
       } catch (err) {
         this.error = err.message;
         this.loading = false;
+      }
+    },
+    async loadMore() {
+      if (!this.nextPageUrl || this.loadingMore) return;
+      
+      this.loadingMore = true;
+      
+      try {
+        const response = await fetch(this.nextPageUrl);
+        
+        if (!response.ok) {
+          throw new Error('Failed to load more');
+        }
+        
+        // Check for next page
+        const linkHeader = response.headers.get('Link');
+        if (linkHeader) {
+          const match = linkHeader.match(/<([^>]+)>; rel="next"/);
+          this.nextPageUrl = match ? match[1] : null;
+        } else {
+          this.nextPageUrl = null;
+        }
+        
+        const data = await response.json();
+        this.users.push(...data);
+        this.loadingMore = false;
+      } catch (err) {
+        this.error = err.message;
+        this.loadingMore = false;
       }
     },
     closeModal() {
@@ -90,12 +131,19 @@ createApp({
           // Content
           this.loading ? h('div', { class: 'loading' }, 'Loading...') :
           this.error ? h('div', { class: 'error' }, this.error) :
-          h('div', { class: 'users-list' }, this.users.map(user => 
-            h('div', { key: user.login, class: 'user-item' }, [
-              h('img', { src: user.avatar_url, alt: user.login, class: 'avatar' }),
-              h('a', { href: user.html_url, target: '_blank' }, user.login)
-            ])
-          ))
+          h('div', { class: 'modal-body' }, [
+            h('div', { class: 'users-list' }, this.users.map(user => 
+              h('div', { key: user.login, class: 'user-item }, [
+                h('img', { src: user.avatar_url', alt: user.login, class: 'avatar' }),
+                h('a', { href: user.html_url, target: '_blank' }, user.login)
+              ])
+            )),
+            this.nextPageUrl && !this.loading ? h('button', {
+              class: 'load-more-btn',
+              onClick: () => this.loadMore()
+            }, 'Load More') : null,
+            this.loadingMore ? h('div', { class: 'loading' }, 'Loading more...') : null
+          ])
         ])
       ]) : null
     ]);
@@ -226,6 +274,23 @@ style.textContent = `
   
   .error {
     color: #d1242f;
+  }
+  
+  .load-more-btn {
+    margin: 20px auto;
+    padding: 10px 24px;
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #24292f;
+    display: block;
+    transition: all 0.2s;
+  }
+  .load-more-btn:hover {
+    background: #f3f4f6;
+    border-color: #0969da;
   }
 `;
 document.head.appendChild(style);
