@@ -13,9 +13,6 @@ const appContainer = document.createElement('div');
 appContainer.id = 'stargazer-viewer-app';
 document.body.appendChild(appContainer);
 
-// Destructure Vue methods
-const { createApp } = Vue;
-
 // Get repository info from current page
 function getRepoInfo() {
   const path = window.location.pathname.split('/').filter(Boolean);
@@ -25,9 +22,10 @@ function getRepoInfo() {
   };
 }
 
-// Create Vue app with error handling
-try {
-  createApp({
+// Create Vue app with render function (avoids template compiler issues)
+const { createApp, h } = Vue;
+
+createApp({
   data() {
     return {
       showModal: false,
@@ -47,7 +45,6 @@ try {
       this.users = [];
       
       try {
-        // Fetch stargazers from GitHub API
         const url = `https://api.github.com/repos/${this.repoInfo.owner}/${this.repoInfo.repo}/stargazers`;
         const response = await fetch(url);
         
@@ -67,35 +64,43 @@ try {
       this.showModal = false;
     }
   },
-  template: `
-    <div>
-      <button @click="openModal('stargazers')" class="stargazer-btn">
-        ⭐ View Stargazers
-      </button>
+  render() {
+    return h('div', [
+      // Button
+      h('button', {
+        class: 'stargazer-btn',
+        onClick: () => this.openModal('stargazers')
+      }, '⭐ View Stargazers'),
       
-      <div v-if="showModal" class="modal-overlay" @click="closeModal">
-        <div class="modal-content" @click.stop>
-          <div class="modal-header">
-            <h2>{{ modalTitle }}</h2>
-            <button class="close-btn" @click="closeModal">×</button>
-          </div>
+      // Modal
+      this.showModal ? h('div', {
+        class: 'modal-overlay',
+        onClick: () => this.closeModal()
+      }, [
+        h('div', {
+          class: 'modal-content',
+          onClick: (e) => e.stopPropagation()
+        }, [
+          // Header
+          h('div', { class: 'modal-header' }, [
+            h('h2', this.modalTitle),
+            h('button', { class: 'close-btn', onClick: () => this.closeModal() }, '×')
+          ]),
           
-          <div v-if="loading" class="loading">Loading...</div>
-          <div v-else-if="error" class="error">{{ error }}</div>
-          <div v-else class="users-list">
-            <div v-for="user in users" :key="user.login" class="user-item">
-              <img :src="user.avatar_url" :alt="user.login" class="avatar" />
-              <a :href="user.html_url" target="_blank">{{ user.login }}</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `
+          // Content
+          this.loading ? h('div', { class: 'loading' }, 'Loading...') :
+          this.error ? h('div', { class: 'error' }, this.error) :
+          h('div', { class: 'users-list' }, this.users.map(user => 
+            h('div', { key: user.login, class: 'user-item' }, [
+              h('img', { src: user.avatar_url, alt: user.login, class: 'avatar' }),
+              h('a', { href: user.html_url, target: '_blank' }, user.login)
+            ])
+          ))
+        ])
+      ]) : null
+    ]);
+  }
 }).mount('#stargazer-viewer-app');
-} catch (error) {
-  console.error('❌ Error creating Vue app:', error);
-}
 
 // Add styles
 const style = document.createElement('style');
@@ -133,12 +138,6 @@ style.textContent = `
     align-items: center;
     justify-content: center;
     z-index: 999999;
-    animation: fadeIn 0.2s;
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
   }
   
   .modal-content {
@@ -150,7 +149,6 @@ style.textContent = `
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   }
   
   .modal-header {
