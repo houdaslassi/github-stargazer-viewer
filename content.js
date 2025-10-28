@@ -30,20 +30,29 @@ createApp({
     };
   },
   methods: {
-    openModal(type) {
+    async openModal(type) {
       this.showModal = true;
       this.modalTitle = type === 'stargazers' ? '⭐ Stargazers' : '🍴 Forks';
       this.loading = true;
       this.error = null;
+      this.users = [];
       
-      // TODO: Fetch from GitHub API
-      setTimeout(() => {
+      try {
+        // Fetch stargazers from GitHub API
+        const url = `https://api.github.com/repos/${this.repoInfo.owner}/${this.repoInfo.repo}/stargazers`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch stargazers');
+        }
+        
+        const data = await response.json();
+        this.users = data;
         this.loading = false;
-        this.users = [
-          { login: 'Test User 1', avatar_url: 'https://github.com/images/error/octocat_happy.gif', html_url: '#' },
-          { login: 'Test User 2', avatar_url: 'https://github.com/images/error/octocat_happy.gif', html_url: '#' }
-        ];
-      }, 1000);
+      } catch (err) {
+        this.error = err.message;
+        this.loading = false;
+      }
     },
     closeModal() {
       this.showModal = false;

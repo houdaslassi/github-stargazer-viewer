@@ -12,5 +12,8 @@
     }
   ],
   
-  "permissions": ["storage"]
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://api.github.com/*"
+  ]
 }
