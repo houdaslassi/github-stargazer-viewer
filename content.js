@@ -1,11 +1,19 @@
 console.log('🚀 GitHub Stargazer Viewer is loaded!');
 
+// Check if Vue is loaded
+if (typeof Vue === 'undefined') {
+  console.error('❌ Vue is not loaded! Check manifest.json');
+  throw new Error('Vue not found');
+}
+
+console.log('✅ Vue is loaded');
+
 // Create container for our Vue app
 const appContainer = document.createElement('div');
 appContainer.id = 'stargazer-viewer-app';
 document.body.appendChild(appContainer);
 
-// Now Vue is available globally (loaded before this script)
+// Destructure Vue methods
 const { createApp } = Vue;
 
 // Get repository info from current page
@@ -17,8 +25,9 @@ function getRepoInfo() {
   };
 }
 
-// Create Vue app
-createApp({
+// Create Vue app with error handling
+try {
+  createApp({
   data() {
     return {
       showModal: false,
@@ -84,6 +93,9 @@ createApp({
     </div>
   `
 }).mount('#stargazer-viewer-app');
+} catch (error) {
+  console.error('❌ Error creating Vue app:', error);
+}
 
 // Add styles
 const style = document.createElement('style');
