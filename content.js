@@ -33,6 +33,7 @@ createApp({
       error: null,
       users: [],
       modalTitle: '',
+      totalCount: null, // Total stargazers count
       repoInfo: getRepoInfo(),
       nextPageUrl: null,
       loadingMore: false
@@ -46,8 +47,18 @@ createApp({
       this.error = null;
       this.users = [];
       this.nextPageUrl = null;
+      this.totalCount = null;
       
       try {
+        // Fetch repo info to get total stargazers count
+        const repoUrl = `https://api.github.com/repos/${this.repoInfo.owner}/${this.repoInfo.repo}`;
+        const repoResponse = await fetch(repoUrl);
+        if (repoResponse.ok) {
+          const repoData = await repoResponse.json();
+          this.totalCount = repoData.stargazers_count;
+        }
+        
+        // Fetch stargazers
         const url = `https://api.github.com/repos/${this.repoInfo.owner}/${this.repoInfo.repo}/stargazers`;
         const response = await fetch(url);
         
@@ -124,7 +135,10 @@ createApp({
         }, [
           // Header
           h('div', { class: 'modal-header' }, [
-            h('h2', this.modalTitle),
+            h('div', { class: 'header-content' }, [
+              h('h2', this.modalTitle),
+              this.totalCount !== null ? h('div', { class: 'count-badge' }, `${this.totalCount.toLocaleString()} stargazers`) : null
+            ]),
             h('button', { class: 'close-btn', onClick: () => this.closeModal() }, '×')
           ]),
           
@@ -210,10 +224,22 @@ style.textContent = `
     border-bottom: 1px solid #e1e4e8;
   }
   
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
   .modal-header h2 {
     margin: 0;
     font-size: 20px;
     color: #24292f;
+  }
+  
+  .count-badge {
+    font-size: 14px;
+    color: #656d76;
+    font-weight: 400;
   }
   
   .close-btn {
