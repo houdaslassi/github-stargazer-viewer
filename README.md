@@ -25,12 +25,12 @@ Simply visit any GitHub repository and click the **"⭐ View Stargazers"** butto
 ### View Stargazers Button
 The extension adds a convenient button on any GitHub repository page:
 
-![Screenshot showing the button](icons/Screenshot%202025-10-29%20at%2015.19.23.png)
+![Screenshot showing the button](screenshots/button.png)
 
 ### Stargazers Modal
 Click the button to see all stargazers in a beautiful modal:
 
-![Screenshot showing the modal with stargazers](icons/Screenshot%202025-10-29%20at%2015.19.33.png)
+![Screenshot showing the modal with stargazers](screenshots/modal.png)
 
 ## 🚀 How to Install
 
