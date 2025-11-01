@@ -29,41 +29,68 @@ createApp({
   data() {
     return {
       showModal: false,
+      activeTab: 'stargazers', // Current tab: stargazers, forks, watchers
       loading: false,
       error: null,
       users: [],
       modalTitle: '',
-      totalCount: null, // Total stargazers count
+      totalCount: null,
       repoInfo: getRepoInfo(),
       nextPageUrl: null,
-      loadingMore: false
+      loadingMore: false,
+      repoData: null // Store repo info (has all counts)
     };
   },
   methods: {
-    async openModal(type) {
+    async openModal() {
       this.showModal = true;
-      this.modalTitle = type === 'stargazers' ? '⭐ Stargazers' : '🍴 Forks';
+      this.activeTab = 'stargazers'; // Default to stargazers
+      await this.fetchRepoData(); // Get all repo info once
+      await this.loadTab('stargazers'); // Load default tab
+    },
+    async fetchRepoData() {
+      // Fetch repo info once to get all counts
+      try {
+        const repoUrl = `https://api.github.com/repos/${this.repoInfo.owner}/${this.repoInfo.repo}`;
+        const repoResponse = await fetch(repoUrl);
+        if (repoResponse.ok) {
+          this.repoData = await repoResponse.json();
+        }
+      } catch (err) {
+        console.error('Failed to fetch repo data:', err);
+      }
+    },
+    async loadTab(tab) {
+      this.activeTab = tab;
       this.loading = true;
       this.error = null;
       this.users = [];
       this.nextPageUrl = null;
-      this.totalCount = null;
+      
+      // Set title and count based on tab
+      const tabConfig = {
+        stargazers: { title: '⭐ Stargazers', count: this.repoData?.stargazers_count },
+        forks: { title: '🍴 Forks', count: this.repoData?.forks_count },
+        watchers: { title: '👀 Watchers', count: this.repoData?.watchers_count }
+      };
+      
+      const config = tabConfig[tab];
+      this.modalTitle = config.title;
+      this.totalCount = config.count;
       
       try {
-        // Fetch repo info to get total stargazers count
-        const repoUrl = `https://api.github.com/repos/${this.repoInfo.owner}/${this.repoInfo.repo}`;
-        const repoResponse = await fetch(repoUrl);
-        if (repoResponse.ok) {
-          const repoData = await repoResponse.json();
-          this.totalCount = repoData.stargazers_count;
-        }
+        const endpoints = {
+          stargazers: 'stargazers',
+          forks: 'forks',
+          watchers: 'subscribers' // Watchers endpoint
+        };
         
-        // Fetch stargazers
-        const url = `https://api.github.com/repos/${this.repoInfo.owner}/${this.repoInfo.repo}/stargazers`;
+        const endpoint = endpoints[tab];
+        const url = `https://api.github.com/repos/${this.repoInfo.owner}/${this.repoInfo.repo}/${endpoint}`;
         const response = await fetch(url);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch stargazers');
+          throw new Error(`Failed to fetch ${tab}`);
         }
         
         // Check for pagination in Link header
@@ -76,7 +103,12 @@ createApp({
         }
         
         const data = await response.json();
-        this.users = data;
+        // Forks API returns repos with owner, stargazers/watchers return users
+        if (tab === 'forks') {
+          this.users = data.map(fork => fork.owner);
+        } else {
+          this.users = data;
+        }
         this.loading = false;
       } catch (err) {
         this.error = err.message;
@@ -105,7 +137,12 @@ createApp({
         }
         
         const data = await response.json();
-        this.users.push(...data);
+        // Handle forks data structure
+        if (this.activeTab === 'forks') {
+          this.users.push(...data.map(fork => fork.owner));
+        } else {
+          this.users.push(...data);
+        }
         this.loadingMore = false;
       } catch (err) {
         this.error = err.message;
@@ -121,8 +158,8 @@ createApp({
       // Button
       h('button', {
         class: 'stargazer-btn',
-        onClick: () => this.openModal('stargazers')
-      }, '⭐ View Stargazers'),
+        onClick: () => this.openModal()
+      }, '⭐ View Repo Insights'),
       
       // Modal
       this.showModal ? h('div', {
@@ -133,11 +170,28 @@ createApp({
           class: 'modal-content',
           onClick: (e) => e.stopPropagation()
         }, [
-          // Header
+          // Header with Tabs
           h('div', { class: 'modal-header' }, [
             h('div', { class: 'header-content' }, [
-              h('h2', this.modalTitle),
-              this.totalCount !== null ? h('div', { class: 'count-badge' }, `${this.totalCount.toLocaleString()} stargazers`) : null
+              // Tabs
+              h('div', { class: 'tabs' }, [
+                h('button', {
+                  class: `tab ${this.activeTab === 'stargazers' ? 'active' : ''}`,
+                  onClick: () => this.loadTab('stargazers')
+                }, '⭐ Stargazers'),
+                h('button', {
+                  class: `tab ${this.activeTab === 'forks' ? 'active' : ''}`,
+                  onClick: () => this.loadTab('forks')
+                }, '🍴 Forks'),
+                h('button', {
+                  class: `tab ${this.activeTab === 'watchers' ? 'active' : ''}`,
+                  onClick: () => this.loadTab('watchers')
+                }, '👀 Watchers')
+              ]),
+              // Count
+              this.totalCount !== null ? h('div', { class: 'count-badge' }, 
+                `${this.totalCount.toLocaleString()} ${this.activeTab === 'stargazers' ? 'stargazers' : this.activeTab === 'forks' ? 'forks' : 'watchers'}`
+              ) : null
             ]),
             h('button', { class: 'close-btn', onClick: () => this.closeModal() }, '×')
           ]),
@@ -227,19 +281,46 @@ style.textContent = `
   .header-content {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    width: 100%;
   }
   
-  .modal-header h2 {
-    margin: 0;
-    font-size: 20px;
+  .tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 2px solid #e1e4e8;
+    margin-bottom: 4px;
+  }
+  
+  .tab {
+    background: none;
+    border: none;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #656d76;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  
+  .tab:hover {
     color: #24292f;
+    background: #f6f8fa;
+  }
+  
+  .tab.active {
+    color: #0969da;
+    border-bottom-color: #0969da;
+    font-weight: 600;
   }
   
   .count-badge {
     font-size: 14px;
     color: #656d76;
     font-weight: 400;
+    margin-top: 4px;
   }
   
   .close-btn {
